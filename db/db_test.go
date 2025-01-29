@@ -12,10 +12,8 @@ import (
 	"github.com/testcontainers/testcontainers-go/modules/mysql"
 )
 
-// Testing with testcontainers + mysql
-
-func TestSuccessWithGetDataByID(t *testing.T) {
-	// Start a new container of MySQL Database
+func TestDB(t *testing.T) {
+	// Setup test container once for all tests
 	ctx := context.Background()
 	mysqlContainer, err := mysql.Run(ctx,
 		"mysql:8.0.36",
@@ -24,7 +22,6 @@ func TestSuccessWithGetDataByID(t *testing.T) {
 		mysql.WithPassword("pass01"),
 		mysql.WithScripts(filepath.Join("testdata", "schema.sql")),
 	)
-
 	if err != nil {
 		assert.Fail(t, "failed to start container")
 	}
@@ -34,13 +31,24 @@ func TestSuccessWithGetDataByID(t *testing.T) {
 		assert.Fail(t, "failed to get connection string")
 	}
 
-	// Act
 	_db, err := sql.Open("mysql", connStr)
-	testDB := db.NewDB(_db)
-	user, err := testDB.FindById(1)
+	if err != nil {
+		assert.Fail(t, "failed to open db connection")
+	}
+	defer _db.Close()
 
-	// Assert
-	assert.Nil(t, err)
-	assert.Equal(t, 1, user.ID)
-	assert.Equal(t, "Somkiat", user.Name)
+	testDB := db.NewDB(_db)
+
+	t.Run("Success get user by ID", func(t *testing.T) {
+		user, err := testDB.FindById(1)
+		assert.Nil(t, err)
+		assert.Equal(t, 1, user.ID)
+		assert.Equal(t, "Somkiat", user.Name)
+	})
+
+	t.Run("Not found user by ID", func(t *testing.T) {
+		user, err := testDB.FindById(999)
+		assert.Nil(t, err)
+		assert.Nil(t, user)
+	})
 }

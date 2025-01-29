@@ -22,6 +22,8 @@ func (d *DB) FindById(id int) (*User, error) {
 		return nil, nil
 	}
 	if err != nil {
+		// handle error
+		recover()
 		return nil, err
 	}
 	return &user, nil
